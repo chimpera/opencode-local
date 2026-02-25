@@ -762,10 +762,12 @@ export namespace Provider {
     const database = mapValues(modelsDev, fromModelsDevProvider)
 
 
-    // Fetch local models and add to database
+    // Fetch local models and merge with existing local provider
     try {
       const localModels = await LocalModels.getModels()
       if (localModels.length > 0) {
+        // Check if local provider already exists in database
+        const existingProvider = database["local-openai"]
         const localProvider: Provider.Info = {
           id: "local-openai",
           name: "Local OpenAI Compatible",
@@ -773,11 +775,20 @@ export namespace Provider {
           env: [],
           models: {},
         }
+        
+        // Merge local models into the provider
         for (const m of localModels) {
-          (database as any)[m.id] = m
           localProvider.models[m.id] = m
         }
-        database["local-openai"] = localProvider
+        
+        // Add or merge with existing local provider
+        if (existingProvider) {
+          // Merge with existing provider
+          const mergedModels = { ...existingProvider.models, ...localProvider.models }
+          database["local-openai"] = { ...existingProvider, models: mergedModels }
+        } else {
+          database["local-openai"] = localProvider
+        }
       }
     } catch (e) {
       log.warn("Failed to fetch local models", { error: e })
