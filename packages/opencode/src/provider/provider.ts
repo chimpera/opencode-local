@@ -15,6 +15,7 @@ import { Instance } from "../project/instance"
 import { Flag } from "../flag/flag"
 import { iife } from "@/util/iife"
 import { Global } from "../global"
+import { LocalModels } from "./local-models"
 import path from "path"
 import { Filesystem } from "../util/filesystem"
 
@@ -760,6 +761,27 @@ export namespace Provider {
     const modelsDev = await ModelsDev.get()
     const database = mapValues(modelsDev, fromModelsDevProvider)
 
+
+    // Fetch local models and add to database
+    try {
+      const localModels = await LocalModels.getModels()
+      if (localModels.length > 0) {
+        const localProvider: Provider.Info = {
+          id: "local-openai",
+          name: "Local OpenAI Compatible",
+          source: "config",
+          env: [],
+          models: {},
+        }
+        for (const m of localModels) {
+          (database as any)[m.id] = m
+          localProvider.models[m.id] = m
+        }
+        database["local-openai"] = localProvider
+      }
+    } catch (e) {
+      log.warn("Failed to fetch local models", { error: e })
+    }
     const disabled = new Set(config.disabled_providers ?? [])
     const enabled = config.enabled_providers ? new Set(config.enabled_providers) : null
 
@@ -1033,6 +1055,7 @@ export namespace Provider {
       modelLoaders,
     }
   })
+
 
   export async function list() {
     return state().then((state) => state.providers)
