@@ -1238,6 +1238,24 @@ export namespace Config {
         .catch(() => {})
     }
 
+    // Set up local provider defaults if no provider config exists
+    const currentProviders = (result as any).provider || {}
+    const hasAnyProvider = Object.keys(currentProviders).length > 0
+    
+    if (!hasAnyProvider) {
+      // No providers configured - add local provider defaults
+      // The local provider loads models dynamically from the API endpoint
+      (result as any).provider = {
+        "local-openai": {
+          name: "Local OpenAI Compatible",
+          options: {
+            apiKey: "none",
+            baseURL: "http://127.0.0.1:1234/v1",
+          },
+        },
+      }
+    }
+
     return result
   })
 
